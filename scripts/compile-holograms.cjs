@@ -1,0 +1,5 @@
+const fs=require('fs'),path=require('path');
+const { chromium: playwright }=require('playwright');
+const root=path.resolve(__dirname, "..");
+const server=require('child_process').spawn(process.execPath,['node_modules/vite/bin/vite.js','--host','127.0.0.1'],{cwd:root,stdio:'ignore'});
+(async()=>{await new Promise(r=>setTimeout(r,1200));const browser=await playwright.launch({headless:true});const page=await browser.newPage();await page.goto('http://127.0.0.1:5173/');fs.mkdirSync(root+'/public/holograms',{recursive:true});let total=0;for(const name of fs.readdirSync(root+'/public/icons').filter(n=>n.endsWith('.svg'))){const result=await page.evaluate(async name=>{const {compileLogo}=await import('/src/lib/compileLogo.js');return compileLogo(await(await fetch('/icons/'+name)).text());},name);const data=new Float32Array(result);fs.writeFileSync(root+'/public/holograms/'+name.replace('.svg','.bin'),Buffer.from(data.buffer));total+=data.byteLength;console.log(name,data.byteLength);}console.log('TOTAL',total);await browser.close();server.kill();})().catch(e=>{console.error(e);server.kill();process.exit(1)});

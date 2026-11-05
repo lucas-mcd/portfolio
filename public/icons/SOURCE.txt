@@ -1,0 +1,23 @@
+Devicon v2.16.0 — https://github.com/devicons/devicon
+SVG originals/plain downloaded from https://cdn.jsdelivr.net/gh/devicons/devicon@v2.16.0/icons/
+See LICENSE-devicon.txt. Brand names and logos belong to their owners.
+
+REST icon: original API diagram created for this portfolio, not an official brand logo.
+
+mono/: outline derivatives of the same SVG paths for monochrome HTML cards. Original SVGs retained for 3D.
+
+Social logos: Devicon github-original.svg and linkedin-plain.svg, fetched from devicons/devicon master; license LICENSE-devicon.txt.
+
+Institution marks (identification only; trademarks belong to their owners):
+EBAC: https://ebaconline.com.br/_nuxt/d58908d198123d3c50c18638f58abb26.svg
+SENAI: https://www.sp.senai.br/images/senai.svg
+Fisk: https://fisk.com.br/assets/logo.-icon.svg (embedded logo silhouette vectorized for extrusion).
+Estácio: https://logodownload.org/wp-content/uploads/2014/12/estacio-logo-1-768x615.png (silhouette vectorized, light separations retained).
+Next.js: https://raw.githubusercontent.com/devicons/devicon/master/icons/nextjs/nextjs-original.svg
+
+Additional project stack assets:
+Devicon original SVGs: djangorest, sqlalchemy, jwt, astro, reactrouter, vitejs, vercel.
+Source: https://github.com/devicons/devicon/tree/master/icons (existing Devicon license).
+Simple Icons SVGs: pydantic, gsap, cloudinary, pix, mercadopago.
+Source: https://github.com/simple-icons/simple-icons/tree/develop/icons (CC0 collection; marks retain their owners' rights).
+Alembic, PyJWT, ScrollTrigger and Docker Compose use custom typographic identifiers, not official logos. Glyphs outlined from DejaVu Sans.

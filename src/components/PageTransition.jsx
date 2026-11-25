@@ -9,8 +9,8 @@ export default function PageTransition({ activeTab, children, paused = false }) 
   const reduced = useMediaQuery('(prefers-reduced-motion: reduce)');
   const mobile = useMediaQuery('(max-width: 1023px)');
   useLayoutEffect(() => {
+    if (reduced || paused || mobile) return;
     const ctx = gsap.context(() => {
-      if (reduced || paused || mobile) return;
       const vertical = gsap.utils.toArray('[data-curtain]');
       const cuts = gsap.utils.toArray('[data-cut]');
       const logs = gsap.utils.toArray('[data-log]');

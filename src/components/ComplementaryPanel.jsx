@@ -234,17 +234,18 @@ function useSelectedCourse() {
   return usePortfolioStore(state => courses.find(course => course.id === state.hoveredItem));
 }
 
-function openCertificate() {
-  document.getElementById('certificate-dialog').showModal();
+function certificateFor(group, course, language) {
+  return { file: `${group.id}-${course.id}.png`, label: `${course.issuer} — ${course.name[language]}` };
 }
 
-export function ComplementaryPanel({ language }) {
+export function ComplementaryPanel({ desktop, language, onOpenCertificate }) {
   const selected = useSelectedCourse();
   const { setHoveredItem, clearHoveredItem } = usePortfolioStore.getState();
   const en = language === 'en';
-  function selectCourse(course) {
+  function selectCourse(group, course) {
     setHoveredItem(course.id);
-    openCertificate();
+    if (desktop) onOpenCertificate(certificateFor(group, course, language));
+    else document.getElementById('certificate-preview')?.scrollIntoView({ block: 'start' });
   }
   return <section className="education-panel">
     <p className="eyebrow">COURSE ARCHIVE / 05</p>
@@ -262,9 +263,9 @@ export function ComplementaryPanel({ language }) {
           <ul id={group.id} hidden={!expanded}>
             {group.courses.map(course => <li key={course.id}>
               <button type="button" className="education-row flex justify-between items-center w-full text-left"
-                aria-haspopup="dialog" aria-pressed={course === selected} aria-controls="certificate-preview"
+                aria-haspopup={desktop ? "dialog" : undefined} aria-pressed={course === selected} aria-controls="certificate-preview"
                 onPointerEnter={event => { if (event.pointerType === 'mouse') setHoveredItem(course.id); }}
-                onFocus={() => setHoveredItem(course.id)} onClick={() => selectCourse(course)}>
+                onFocus={() => setHoveredItem(course.id)} onClick={() => selectCourse(group, course)}>
                 <span>{course.name[language]}</span>{course.hours && <span className="muted">{course.hours} h</span>}
               </button>
             </li>)}
@@ -275,32 +276,21 @@ export function ComplementaryPanel({ language }) {
   </section>;
 }
 
-export function CertificatePanel({ language }) {
-  const course = useSelectedCourse();
+export function complementarySelection(id) {
+  const course = courses.find(item => item.id === id);
+  return { course, group: groups.find(item => item.name === course?.issuer) };
+}
+
+export function CertificateCaption({ desktop, language, course, group, onOpenCertificate }) {
   const en = language === 'en';
-  const group = groups.find(group => group.name === course?.issuer);
-  const src = course && `${import.meta.env.BASE_URL}certificados/${group.id}-${course.id}.png`;
-  return <aside id="certificate-preview" className="hologram-panel education-hologram" aria-label={en ? 'Course certificate' : 'Certificado do curso'}>
-    <header className="viewport-header"><span>{en ? 'CERTIFICATE' : 'CERTIFICADO'}{course && ` / ${course.issuer.toUpperCase()}`}</span><span aria-hidden="true">◈</span></header>
-    {course ? <>
-      <button type="button" onClick={openCertificate} aria-haspopup="dialog" className="block w-full p-4 cursor-zoom-in"
-        aria-label={en ? 'Open full-size certificate' : 'Abrir certificado em tamanho original'}>
-        <img key={src} src={src} width={course.width} height={course.height} className="block w-full h-auto" decoding="async"
-          alt={`${en ? 'Certificate' : 'Certificado'} — ${course.issuer} — ${course.name[language]}`} />
-      </button>
-      <section className="hologram-caption course-caption">
+  return course ? (
+      <section key={course.id} tabIndex={0} className="hologram-caption course-caption">
         <h2>{course.name[language]}{course.hours && ` · ${course.hours} h`}</h2>
+        {!desktop && <button type="button" className="action justify-self-start" aria-haspopup="dialog"
+          onClick={() => onOpenCertificate(certificateFor(group, course, language))}>
+          {en ? 'View certificate' : 'Ver certificado'}
+        </button>}
         <ul className="list-disc pl-5 space-y-2 text-sm leading-relaxed">{course.topics[language].map(topic => <li key={topic}>{topic}</li>)}</ul>
       </section>
-    </> : <p className="muted text-sm p-5">{en ? 'Open a group to view its certificates.' : 'Abra um grupo para ver os certificados.'}</p>}
-    <dialog id="certificate-dialog" className="certificate-dialog"
-      aria-label={course?.name[language]} onClick={event => {
-        if (event.target === event.currentTarget) event.currentTarget.close();
-      }}>
-      <button type="button" aria-label={en ? 'Close certificate' : 'Fechar certificado'}
-        onClick={event => event.currentTarget.closest('dialog').close()}>×</button>
-      {course && <img src={src} width={course.width} height={course.height}
-        alt={`${course.issuer} — ${course.name[language]}`} />}
-    </dialog>
-  </aside>;
+    ) : <p className="muted text-sm p-5">{en ? 'Open a group to view its certificates.' : 'Abra um grupo para ver os certificados.'}</p>;
 }

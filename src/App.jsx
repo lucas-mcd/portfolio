@@ -1,10 +1,10 @@
-import { lazy, Suspense, useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { startTransition, lazy, Suspense, useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { TABS, UI_TEXT, usePortfolioStore } from './store/usePortfolioStore';
-import { about, education, institutionIcons, projects, resume, skillIcons, socialLinks } from './data/portfolioData';
+import { about, education, institutionIcons, projects, resume, socialLinks } from './data/portfolioData';
 import { useMediaQuery } from './hooks/useMediaQuery';
 import PageTransition from './components/PageTransition';
 import { gsap } from './lib/gsap';
-import { CertificatePanel, ComplementaryPanel } from './components/ComplementaryPanel';
+import { CertificateCaption, complementarySelection, ComplementaryPanel } from './components/ComplementaryPanel';
 import SkillsPanel from './components/SkillsPanel';
 import OverdriveWarning from './components/OverdriveWarning';
 import OverdriveJourney from './components/OverdriveJourney';
@@ -59,7 +59,7 @@ function DigitalClock({ language, paused = false }) {
   }, [paused]);
   return <time className="digital-clock" dateTime={now.toISOString()}>{now.toLocaleTimeString(language === 'pt' ? 'pt-BR' : 'en-GB', { hour12: false })}</time>;
 }
-function HologramPanel({ paused, text }) {
+function HologramPanel({ paused, text, desktop, complementary, onOpenCertificate }) {
   const activeTab = usePortfolioStore(state => state.activeTab);
   const hoveredItem = usePortfolioStore(state => state.hoveredItem);
   const language = usePortfolioStore(state => state.language);
@@ -67,16 +67,25 @@ function HologramPanel({ paused, text }) {
   const course = activeTab === 'education' && (content.education.find(item => item.id === hoveredItem) ?? content.education[0]);
   const translatedProject = content.projects.find(item => item.hoverKey === hoveredItem);
   const label = translatedProject?.title || hoveredItem || (activeTab === 'home' ? 'CURRICULUM / ABSTRACT' : text.tabs[TABS.findIndex((tab) => tab.id === activeTab)]);
-  return <aside className={`hologram-panel ${activeTab === 'skills' ? 'skills-hologram' : course ? 'education-hologram' : ''}`} aria-label="Hologram">
-    <header className="viewport-header"><span>HOLOGRAM / LIVE VIEW</span><span>◈</span></header>
-    <Suspense fallback={<div className="hologram-stage" />}><HologramViewport paused={paused} /></Suspense>
+  const selection = complementary ? complementarySelection(hoveredItem) : null;
+  const panelClass = complementary ? 'education-hologram complementary-hologram' : activeTab === 'skills' ? 'skills-hologram' : course ? 'education-hologram' : '';
+  return <aside className={`hologram-panel ${panelClass}`} id={complementary ? 'certificate-preview' : undefined}
+    aria-label={complementary ? (language === 'en' ? 'Course certificate' : 'Certificado do curso') : 'Hologram'}>
+    <header className="viewport-header"><span>HOLOGRAM / {selection?.course?.issuer.toUpperCase() ?? 'LIVE VIEW'}</span><span aria-hidden="true">◈</span></header>
+    <Suspense fallback={<div className="hologram-stage" />}><HologramViewport paused={paused} desktop={desktop} icon={selection?.group?.id} /></Suspense>
+    {complementary ? <CertificateCaption {...selection} desktop={desktop} language={language} onOpenCertificate={onOpenCertificate} /> : <>
     <AssetDiagnostic paused={paused} />
     {course ? <section className="hologram-caption course-caption" id="course-caption">
       <h2>{course.course}</h2>
       <div className="course-badges"><span>{course.institution}{course.credential && ` / ${course.credential}`}</span><span>{course.status}</span></div>
+      {!desktop && course.certificate && <button type="button" className="action justify-self-start" aria-haspopup="dialog"
+        onClick={() => onOpenCertificate({ file: course.certificate, label: `${course.institution} — ${course.course}` })}>
+        {language === 'pt' ? 'Ver certificado' : 'View certificate'}
+      </button>}
       <p className="course-summary" key={course.id} tabIndex={0}>{course.summary}</p>
     </section> : <div className="hologram-caption"><span>OBJECT_ID</span><strong>{label}</strong></div>}
     <p className="muted text-xs p-5">{activeTab === 'skills' ? 'HOVER / FOCUS / TAP → SCAN' : 'MONOCHROME / GEOMETRIC STUDY'}</p>
+    </>}
   </aside>;
 }
 
@@ -158,7 +167,7 @@ function SocialConnections({ paused, language }) {
   </nav>;
 }
 
-function Content({ activeTab, navigate, paused, text, language }) {
+function Content({ desktop, activeTab, navigate, paused, text, language, onOpenCertificate }) {
   const { about, education } = getPortfolioContent(language);
   const hoveredItem = usePortfolioStore(state => activeTab === 'education' ? state.hoveredItem : null);
   const { setHoveredItem } = usePortfolioStore.getState();
@@ -182,14 +191,17 @@ function Content({ activeTab, navigate, paused, text, language }) {
       </div>
     </div></section>;
     case 'projects': return <ProjectsPanel text={text} language={language} />;
-    case 'complementary': return <ComplementaryPanel language={language} />;
-    case 'skills': return <SkillsPanel paused={paused} title={text.skills} />;
-    case 'education': return <section className="education-panel"><p className="eyebrow">ACADEMIC RECORD / 04</p><h1>{text.education}</h1><ol className="education-files border-panel">{education.map((item, index) => <li key={item.id}><button type="button" className="education-row group border-b border-white/10 py-3 flex justify-between items-center w-full text-left" aria-pressed={(hoveredItem ?? education[0].id) === item.id} aria-controls="course-caption"
+    case 'complementary': return <ComplementaryPanel desktop={desktop} language={language} onOpenCertificate={onOpenCertificate} />;
+    case 'education': return <section className="education-panel"><p className="eyebrow">ACADEMIC RECORD / 04</p><h1>{text.education}</h1><ol className="education-files border-panel">{education.map((item, index) => <li key={item.id}><button type="button" className="education-row group border-b border-white/10 py-3 flex justify-between items-center w-full text-left" aria-pressed={(hoveredItem ?? education[0].id) === item.id} aria-controls="course-caption" aria-haspopup={desktop && item.certificate ? "dialog" : undefined}
       onPointerEnter={event => {
         if (event.pointerType === 'mouse' && window.matchMedia('(min-width: 1024px)').matches) setHoveredItem(item.id);
       }} onFocus={() => setHoveredItem(item.id)} onClick={() => {
         setHoveredItem(item.id);
-        if (window.matchMedia('(max-width: 1023px)').matches) document.querySelector('.education-hologram')?.scrollIntoView({ block: 'start' });
+        if (desktop && item.certificate) {
+          onOpenCertificate({ file: item.certificate, label: `${item.institution} — ${item.course}` });
+          return;
+        }
+        if (!desktop) document.querySelector('.education-hologram')?.scrollIntoView({ block: 'start' });
       }}>
       <span className="file-number">{String(index + 1).padStart(2, '0')}</span>
       <div className="min-w-0 flex-1"><h2 className="text-sm">{item.course}{item.credential && ` (${item.credential})`}</h2>{item.detail && <p className="muted text-xs mt-2">{item.detail}</p>}{item.grade && <p className="academic-grade">{item.grade}</p>}</div>
@@ -198,6 +210,18 @@ function Content({ activeTab, navigate, paused, text, language }) {
     default: return null;
   }
 }
+function CertificateDialog({ certificate, language, onClose }) {
+  const dialog = useRef(null);
+  useLayoutEffect(() => { dialog.current.showModal(); }, []);
+  return <dialog ref={dialog} className="certificate-dialog" aria-label={certificate.label}
+    onClose={onClose} onClick={event => {
+      if (event.target === event.currentTarget) event.currentTarget.close();
+    }}>
+    <button type="button" aria-label={language === 'en' ? 'Close certificate' : 'Fechar certificado'}
+      onClick={() => dialog.current.close()}>×</button>
+    <img src={`${import.meta.env.BASE_URL}certificados/${certificate.file}`} decoding="async" alt={certificate.label} />
+  </dialog>;
+}
 export default function App() {
   const activeTab = usePortfolioStore(state => state.activeTab);
   const language = usePortfolioStore(state => state.language);
@@ -205,7 +229,9 @@ export default function App() {
   const { setActiveTab, setLanguage, toggleOverdriveMode, toggleOverdriveWarning } = usePortfolioStore.getState();
   const text = UI_TEXT[language];
   const [isBooting, setIsBooting] = useState(true);
+  const [skillsReady, setSkillsReady] = useState(false);
   const finishBoot = useCallback(() => setIsBooting(false), []);
+  const [certificate, setCertificate] = useState(null);
   const [paused, setPaused] = useState(false);
   const capturing = usePortfolioStore(s => s.isCapturing);
   const effectsPaused = paused || capturing;
@@ -221,38 +247,19 @@ export default function App() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const mobileMenuButton = useRef(null);
   useEffect(() => {
-    // Warm the default course first, then a few small tile images per idle turn.
-    if (navigator.connection?.saveData) return;
-    let cancelled = false;
-    let handle;
-    const idle = callback => window.requestIdleCallback
-      ? window.requestIdleCallback(callback)
-      : window.setTimeout(callback, 120);
-    const icons = [...new Set(Object.values(skillIcons))];
-    function warmTiles() {
-      if (cancelled) return;
-      const batch = icons.splice(0, 4).map(icon => {
-        const image = new Image();
-        image.fetchPriority = 'low';
-        image.src = `${import.meta.env.BASE_URL}icons/mono/${icon}.svg`;
-        return image.decode();
-      });
-      Promise.allSettled(batch).then(() => {
-        if (!cancelled && icons.length) handle = idle(warmTiles);
-      });
-    }
-    handle = idle(() => {
-      import('./lib/hologramCache').then(({ loadHologram }) => {
-        if (!cancelled) return loadHologram(institutionIcons[education[0].institution]);
-      }).catch(() => {});
-      warmTiles();
-    });
-    return () => {
-      cancelled = true;
-      if (window.cancelIdleCallback) window.cancelIdleCallback(handle);
-      else clearTimeout(handle);
+    if (isBooting || navigator.connection?.saveData) return;
+    const warm = () => {
+      startTransition(() => setSkillsReady(true));
+      import('./lib/hologramCache').then(({ loadHologram }) =>
+        loadHologram(institutionIcons[education[0].institution])).catch(() => {});
     };
-  }, []);
+    if (window.requestIdleCallback) {
+      const handle = window.requestIdleCallback(warm);
+      return () => window.cancelIdleCallback(handle);
+    }
+    const timer = window.setTimeout(warm, 250);
+    return () => window.clearTimeout(timer);
+  }, [isBooting]);
   useEffect(() => { if (desktop) setMobileMenuOpen(false); }, [desktop]);
   useEffect(() => {
     if (!mobileMenuOpen || desktop) return;
@@ -300,6 +307,7 @@ export default function App() {
   }, [overdriveMode, toggleOverdriveMode]);
   function navigate(id) {
     if (activeTab !== id) {
+      if (id === 'skills') setSkillsReady(true);
       setActiveTab(id);
 
     }
@@ -379,13 +387,17 @@ export default function App() {
       <main inert={overdriveMode} aria-hidden={overdriveMode} id="active-viewport" ref={viewport} tabIndex={-1} data-active-viewport className={`active-viewport dense-viewport ${activeTab === 'home' ? 'home-viewport overflow-hidden' : activeTab === 'skills' ? 'skills-viewport' : ''}`}>
         {activeTab !== 'home' && <header className="viewport-header"><span>VIEWPORT / {current.command}</span><span className="critical">0{TABS.indexOf(current)} / {String(TABS.length - 1).padStart(2, '0')}</span></header>}
         <div className="viewport-content">{TABS.map((tab) => <section key={tab.id} id={`panel-${tab.id}`} role="tabpanel" aria-labelledby={`tab-${tab.id}`} hidden={activeTab !== tab.id} tabIndex={0}>
-          {activeTab === tab.id && <PageTransition activeTab={activeTab} paused={effectsPaused}><Content activeTab={activeTab} navigate={navigate} paused={effectsPaused} text={text} language={language} /></PageTransition>}
+          {tab.id === 'skills' ? ((skillsReady || activeTab === 'skills') &&
+            <PageTransition activeTab="skills" paused={effectsPaused || activeTab !== 'skills'}>
+              <SkillsPanel paused={effectsPaused} title={text.skills} />
+            </PageTransition>) : activeTab === tab.id && <PageTransition activeTab={activeTab} paused={effectsPaused}><Content desktop={desktop} onOpenCertificate={setCertificate} activeTab={activeTab} navigate={navigate} paused={effectsPaused} text={text} language={language} /></PageTransition>}
         </section>)}</div>
       </main>
-      {activeTab === 'complementary' && !overdriveMode
-        ? <CertificatePanel language={language} />
-        : (desktop || activeTab === 'education') && <HologramPanel paused={effectsPaused} text={text} />}
+      {(desktop || activeTab === 'education' || activeTab === 'complementary') &&
+        <HologramPanel complementary={activeTab === 'complementary' && !overdriveMode} desktop={desktop}
+          onOpenCertificate={setCertificate} paused={effectsPaused} text={text} />}
     </div>
+    {certificate && <CertificateDialog certificate={certificate} language={language} onClose={() => setCertificate(null)} />}
     <OverdriveWarning returnFocusRef={commandRef} />
     {overdriveMode && <OverdriveJourney />}
     {overdriveMode && <div className="overdrive-controls">

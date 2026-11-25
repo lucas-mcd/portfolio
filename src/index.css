@@ -400,3 +400,15 @@ a { color:#ffffff; }
   font-size:28px; line-height:1; cursor:pointer;
 }
 body:has(.certificate-dialog[open]) { overflow:hidden; }
+
+.complementary-hologram {
+  display:flex; flex-direction:column; height:calc(100dvh - 32px); overflow:hidden;
+}
+.complementary-hologram .viewport-header { flex:none; }
+.complementary-hologram > .hologram-stage { flex:none; }
+.complementary-hologram .hologram-stage { max-height:43dvh; }
+.complementary-hologram .course-caption { min-height:0; overflow-y:auto; align-content:start; }
+@media (max-width:1023px) {
+  .complementary-hologram { height:76svh; }
+  .complementary-hologram .hologram-stage { max-height:36svh; }
+}

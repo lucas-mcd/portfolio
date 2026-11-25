@@ -1,5 +1,5 @@
 import { categoryName } from '../data/translations';
-import { memo, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { memo, useLayoutEffect, useRef, useState } from 'react';
 import { gsap } from '../lib/gsap';
 import { skills, skillIcons } from '../data/portfolioData';
 import { useMediaQuery } from '../hooks/useMediaQuery';
@@ -37,17 +37,16 @@ const SkillTile = memo(function SkillTile({ name, language, animate }) {
   </button>;
 });
 
-export default function SkillsPanel({ paused = false, title = 'Conhecimentos' }) {
+const SkillsPanel = memo(function SkillsPanel({ paused = false, title = 'Conhecimentos' }) {
   const language = usePortfolioStore(state => state.language);
-  const clear = usePortfolioStore(state => state.clearHoveredItem);
   const finePointer = useMediaQuery('(min-width:1024px) and (pointer:fine)');
   const reduced = useMediaQuery('(prefers-reduced-motion: reduce)');
   const deck = useRef(null);
   const [layout, setLayout] = useState({ tile: 40, columns: 1 });
-  useEffect(() => () => clear(), [clear]);
   useLayoutEffect(() => {
     const observer = new ResizeObserver(([entry]) => {
       const { width, height } = entry.contentRect;
+      if (!width || !height) return;
       let best = { tile: 24, columns: 1 };
       // Fit every category, not a page of items. No measurements inside animation loops.
       for (let tile = 64; tile >= 24; tile -= 2) {
@@ -76,4 +75,6 @@ export default function SkillsPanel({ paused = false, title = 'Conhecimentos' })
       </section>)}
     </div>
   </section>;
-}
+});
+
+export default SkillsPanel;

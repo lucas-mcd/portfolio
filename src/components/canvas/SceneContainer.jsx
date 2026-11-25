@@ -308,7 +308,13 @@ function HologramModel({ animate, forceSkill = false }) {
   return icon ? <SvgLogo key={icon} icon={icon} animate={animate} /> : <IdleModel animate={animate} resume={activeTab === 'home'} />;
 }
 
-export function HologramViewport({ paused = false }) {
+function InstitutionLogo({ icon, animate, desktop }) {
+  const aspect = useThree(state => state.size.width / (state.size.height || 1));
+  const scale = desktop ? (1 + Math.min(2, 1.45 * aspect)) / 2 : 1.2;
+  return <group scale={scale}><SvgLogo key={icon} icon={icon} animate={animate} /></group>;
+}
+
+export function HologramViewport({ paused = false, icon, desktop = false }) {
   const overdriveMode = usePortfolioStore((state) => state.overdriveMode);
   const reduced = useMediaQuery('(prefers-reduced-motion: reduce)');
   const visible = usePageVisible();
@@ -319,7 +325,7 @@ export function HologramViewport({ paused = false }) {
       gl={{ alpha: true, antialias: true, powerPreference: 'low-power' }}
       frameloop={animate ? 'always' : 'demand'}
       performance={{ min: 0.65, max: 1, debounce: 1800 }} fallback={<SceneFallback />}>
-      {overdriveMode ? <OverdriveScene animate={animate} hologram={<HologramModel animate={animate} forceSkill />} /> : <HologramModel animate={animate} />}
+      {overdriveMode ? <OverdriveScene animate={animate} hologram={<HologramModel animate={animate} forceSkill />} /> : icon ? <InstitutionLogo icon={icon} animate={animate} desktop={desktop} /> : <HologramModel animate={animate} />}
       <CaptureSurface /><AdaptiveDpr /><FrameBudget enabled={animate} /><ContextLossGuard />
     </Canvas></SceneErrorBoundary>
   </div>;

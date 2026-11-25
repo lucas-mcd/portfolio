@@ -373,3 +373,30 @@ a { color:#ffffff; }
  .focused-monitor .system-controls { margin-top:12px; }
 }
 @media(max-width:1023px) { .focused-monitor { clip-path:none; overflow:visible; } }
+
+.course-caption h2 { font-size:clamp(1rem,1.4vw,1.25rem); line-height:1.4; overflow-wrap:anywhere; }
+.course-badges { display:flex; flex-wrap:wrap; gap:6px; }
+.course-badges span { border:1px solid #ffffff33; padding:3px 7px; color:#ccc; }
+.course-summary { max-height:clamp(5rem,20dvh,12rem); overflow-y:auto; scrollbar-width:thin; scroll-behavior:smooth; color:#ccc; font-size:13px; line-height:1.65; }
+.education-row[aria-pressed="true"] { background:#ffffff0d; }
+@media (max-width:1023px) {
+  .education-hologram { display:block; grid-column:1; grid-row:auto; position:static; width:100%; max-height:none; }
+  .education-hologram .hologram-stage { max-height:42dvh; }
+}
+@media (prefers-reduced-motion:reduce) { .course-summary { scroll-behavior:auto; } }
+
+.certificate-dialog[open] {
+  position:fixed; inset:0; margin:auto; width:100vw; height:100dvh;
+  max-width:none; max-height:none; padding:0; border:0; background:transparent;
+  display:grid; place-items:center;
+}
+.certificate-dialog::backdrop { background:rgb(0 0 0 / .88); }
+.certificate-dialog img {
+  width:auto; height:auto; max-width:96vw; max-height:calc(100dvh - 100px);
+}
+.certificate-dialog button {
+  position:absolute; right:max(12px, env(safe-area-inset-right)); top:max(8px, env(safe-area-inset-top));
+  width:44px; height:44px; border:1px solid #888; color:#fff; background:#111;
+  font-size:28px; line-height:1; cursor:pointer;
+}
+body:has(.certificate-dialog[open]) { overflow:hidden; }

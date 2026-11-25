@@ -36,7 +36,7 @@ export default function PageTransition({ activeTab, children, paused = false }) 
         });
       });
     }, root);
-    ScrollTrigger.refresh();
+    if (ScrollTrigger.getAll().length) ScrollTrigger.refresh();
     return () => ctx.revert();
   }, [activeTab, reduced, paused, mobile]);
   return <div ref={root} className="transition-shell">

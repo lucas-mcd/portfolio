@@ -1,29 +1,31 @@
 import { categoryName } from '../data/translations';
-import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { memo, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { gsap } from '../lib/gsap';
 import { skills, skillIcons } from '../data/portfolioData';
 import { useMediaQuery } from '../hooks/useMediaQuery';
 
 import { usePortfolioStore } from '../store/usePortfolioStore';
 
-function SkillTile({ name, paused }) {
-  const language = usePortfolioStore(state => state.language);
-  const setHoveredItem = usePortfolioStore(state => state.setHoveredItem);
-  const clearHoveredItem = usePortfolioStore(state => state.clearHoveredItem);
+const SkillTile = memo(function SkillTile({ name, language, animate }) {
   const root = useRef(null);
   const animation = useRef(null);
-  const reduced = useMediaQuery('(prefers-reduced-motion: reduce)');
-  useLayoutEffect(() => {
-    const ctx = gsap.context(() => {
-      if (paused || reduced || !window.matchMedia('(min-width:1024px) and (pointer:fine)').matches) return;
+  useLayoutEffect(() => () => {
+    animation.current?.revert();
+    animation.current = null;
+  }, [animate]);
+  const inspect = () => {
+    usePortfolioStore.getState().setHoveredItem(name);
+    if (!animate) return;
+    if (!animation.current) {
+      const image = root.current.querySelector('img');
       animation.current = gsap.timeline({ paused: true })
-        .to('img', { rotation: -8, x: -2, duration: 0.07 })
-        .to('img', { rotation: 6, x: 2, duration: 0.07 })
-        .to('img', { rotation: 0, x: 0, duration: 0.18, ease: 'power2.out' });
-    }, root);
-    return () => { animation.current = null; ctx.revert(); };
-  }, [paused, reduced]);
-  const inspect = () => { setHoveredItem(name); animation.current?.restart(); };
+        .to(image, { rotation: -8, x: -2, duration: 0.07 })
+        .to(image, { rotation: 6, x: 2, duration: 0.07 })
+        .to(image, { rotation: 0, x: 0, duration: 0.18, ease: 'power2.out' });
+    }
+    animation.current.restart();
+  };
+  const clearHoveredItem = usePortfolioStore.getState().clearHoveredItem;
   return <button ref={root} className="skill-tile" aria-label={`${name}. ${language === 'en' ? 'Proficiency level not specified.' : 'Proficiência não informada.'}`}
     onMouseEnter={inspect}
     onMouseLeave={clearHoveredItem}
@@ -33,11 +35,13 @@ function SkillTile({ name, paused }) {
     <img src={`${import.meta.env.BASE_URL}icons/mono/${skillIcons[name]}.svg`} alt="" width="36" height="36" style={{ filter: 'brightness(0) invert(1)', objectFit: 'contain' }} />
     <span className="skill-name" title={name}>{({ 'Django REST Framework': 'Django REST', 'Docker Compose': 'Compose', 'Mercado Pago': 'Mercado Pago' })[name] || name}</span>
   </button>;
-}
+});
 
 export default function SkillsPanel({ paused = false, title = 'Conhecimentos' }) {
   const language = usePortfolioStore(state => state.language);
   const clear = usePortfolioStore(state => state.clearHoveredItem);
+  const finePointer = useMediaQuery('(min-width:1024px) and (pointer:fine)');
+  const reduced = useMediaQuery('(prefers-reduced-motion: reduce)');
   const deck = useRef(null);
   const [layout, setLayout] = useState({ tile: 40, columns: 1 });
   useEffect(() => () => clear(), [clear]);
@@ -68,7 +72,7 @@ export default function SkillsPanel({ paused = false, title = 'Conhecimentos' })
     <div ref={deck} className="skills-all" style={{ '--skill-size': `${layout.tile}px`, gridTemplateColumns: `repeat(${layout.columns}, minmax(0, 1fr))` }}>
       {skills.map(group => <section key={group.id} className="skill-category">
         <h2>{categoryName(group, language)}<small>{group.items.length}</small></h2>
-        <div className="skill-grid">{group.items.map(name => <SkillTile key={name} name={name} paused={paused} />)}</div>
+        <div className="skill-grid">{group.items.map(name => <SkillTile key={name} name={name} language={language} animate={finePointer && !reduced && !paused} />)}</div>
       </section>)}
     </div>
   </section>;

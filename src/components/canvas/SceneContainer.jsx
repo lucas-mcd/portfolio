@@ -1,8 +1,9 @@
 import { Component, Suspense, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { cachedHologram, loadHologram } from '../../lib/hologramCache';
 import { Vector2, Vector3 } from 'three';
-import { skillIcons, projects, institutionIcons } from '../../data/portfolioData';
+import { skillIcons, projects, education, institutionIcons } from '../../data/portfolioData';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
-import { AdaptiveDpr, Center } from '@react-three/drei';
+import { AdaptiveDpr } from '@react-three/drei';
 import OverdriveScene, { CaptureSurface } from './OverdriveScene';
 import { usePortfolioStore } from '../../store/usePortfolioStore';
 import { useMediaQuery, usePageVisible } from '../../hooks/useMediaQuery';
@@ -219,9 +220,8 @@ export default function SceneContainer({ paused = false }) {
   );
 }
 
-function ExtrudedLogo({ positions, animate }) {
+function ExtrudedLogo({ model, animate }) {
   const rotation = useRef(null);
-  const lines = useRef(null);
   // Contornos pré-calculados: nenhuma triangulação/extrusão no navegador.
 
   const invalidate = useThree((s) => s.invalidate);
@@ -229,73 +229,34 @@ function ExtrudedLogo({ positions, animate }) {
     rotation.current.scale.setScalar(animate ? 0.06 : 1);
     invalidate();
   }, [animate, invalidate]);
-  useLayoutEffect(() => {
-    const geometry = lines.current.geometry;
-    const material = lines.current.material;
-    // O próximo fetch começa em passive effect, depois deste cleanup de layout.
-    // dispose=null abaixo evita descarte adiado/duplicado pelo reconciliador R3F.
-    return () => { geometry.dispose(); material.dispose(); };
-  }, [positions]);
   useFrame((_, delta) => {
     if (!animate || !rotation.current) return;
     const dt = Math.min(delta, 0.05);
-    rotation.current.rotation.y += 0.9 * dt; // Equivale a 0.015/frame a 60 FPS.
+    rotation.current.rotation.y += 0.9 * dt;
     const value = rotation.current.scale.x;
     rotation.current.scale.setScalar(value + (1 - value) * (1 - Math.exp(-10 * dt)));
   });
   return <group ref={rotation}>
-    <Center>
-      {/* SVG usa Y para baixo; esta inversão restaura a orientação da marca. */}
-      <lineSegments ref={lines} scale={[1, -1, 1]} dispose={null}>
-        {/* 25° remove diagonais coplanares e reduz segmentos suaves do bevel.
-            Preserva bordas abertas e quinas; não é detecção de silhueta por câmera. */}
-        <bufferGeometry><bufferAttribute attach="attributes-position" args={[positions, 3]} /></bufferGeometry>
+    <group position={model.offset}>
+      <lineSegments geometry={model.geometry} scale={[1, -1, 1]}>
         <lineBasicMaterial color="#ffffff" transparent opacity={0.85} depthWrite={false} />
       </lineSegments>
-    </Center>
+    </group>
   </group>;
 }
 
-// Bounded CPU-only cache; mounted geometries/materials are disposed on every exit.
-const logoBuffers = new Map();
-let logoBytes = 0;
-function rememberLogo(icon, positions) {
-  if (logoBuffers.has(icon)) return;
-  const budget = 8 * 1024 * 1024;
-  while (logoBytes + positions.byteLength > budget && logoBuffers.size) {
-    const oldest = logoBuffers.keys().next().value;
-    logoBytes -= logoBuffers.get(oldest).byteLength;
-    logoBuffers.delete(oldest);
-  }
-  if (positions.byteLength <= budget) { logoBuffers.set(icon, positions); logoBytes += positions.byteLength; }
-}
 function SvgLogo({ icon, animate }) {
-  const [status, setStatus] = useState({ positions: null, error: null });
+  const [, setLoaded] = useState(null);
+  const model = cachedHologram(icon);
   useEffect(() => {
-    const controller = new AbortController();
+    if (model) return;
     let active = true;
-    async function load() {
-      try {
-        const cached = logoBuffers.get(icon);
-        if (cached) { if (active) setStatus({ positions: cached, error: null }); return; }
-        const response = await fetch(`${import.meta.env.BASE_URL}holograms/${icon}.bin`, { signal: controller.signal });
-        if (!response.ok) throw new Error(`Hologram HTTP ${response.status}`);
-        const buffer = await response.arrayBuffer();
-        if (!active) return;
-        if (!buffer.byteLength || buffer.byteLength % 24) throw new Error('Invalid line buffer');
-        const positions = new Float32Array(buffer);
-        rememberLogo(icon, positions);
-        if (active) setStatus({ positions, error: null });
-      } catch (error) {
-        if (active && error.name !== 'AbortError') setStatus({ positions: null, error: error.message });
-      }
-    }
-    load();
-    return () => { active = false; controller.abort(); };
-  }, [icon]);
-  if (status.error) return null;
-  if (!status.positions) return null;
-  return <ExtrudedLogo positions={status.positions} animate={animate} />;
+    loadHologram(icon).then(result => {
+      if (active) setLoaded(result);
+    }).catch(() => {});
+    return () => { active = false; };
+  }, [icon, model]);
+  return model ? <ExtrudedLogo model={model} animate={animate} /> : null;
 }
 function ResumeModel() {
   return <group>
@@ -324,12 +285,26 @@ function ProjectLogos({ icons, animate }) {
     </group>)}</group>;
 }
 function HologramModel({ animate, forceSkill = false }) {
-  const { activeTab, hoveredItem } = usePortfolioStore();
+  const activeTab = usePortfolioStore(state => state.activeTab);
+  const hoveredItem = usePortfolioStore(state => state.hoveredItem);
   const project = activeTab === 'projects' && projects.find(item => item.title === hoveredItem);
   if (project?.holograms?.length) return <ProjectLogos key={project.id} icons={project.holograms} animate={animate} />;
+  if (activeTab === 'education' && !forceSkill) {
+    const course = education.find(item => item.id === hoveredItem) ?? education[0];
+    const institution = institutionIcons[course.institution];
+    if (!course.credential) return <SvgLogo key={institution} icon={institution} animate={animate} />;
+    return <group>
+      <group position={[-0.83, 0, 0]} rotation={[0, 0.12, 0]} scale={0.64}>
+        <SvgLogo icon={institution} animate={animate} />
+      </group>
+      <group position={[0.83, 0, 0]} rotation={[0, -0.12, 0]} scale={0.68}>
+        <SvgLogo key={course.id} icon={course.id} animate={animate} />
+      </group>
+    </group>;
+  }
   const socialIcon = activeTab === 'home' && ['linkedin', 'github'].includes(hoveredItem) ? hoveredItem : null;
   const icon = forceSkill || activeTab === 'skills' ? skillIcons[hoveredItem]
-    : activeTab === 'education' ? institutionIcons[hoveredItem] : socialIcon;
+    : socialIcon;
   return icon ? <SvgLogo key={icon} icon={icon} animate={animate} /> : <IdleModel animate={animate} resume={activeTab === 'home'} />;
 }
 

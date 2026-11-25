@@ -5,7 +5,9 @@ import { usePortfolioStore } from '../store/usePortfolioStore';
 import { useMediaQuery } from '../hooks/useMediaQuery';
 
 export default function AssetDiagnostic({ paused = false }) {
-  const { activeTab, hoveredItem, language } = usePortfolioStore();
+  const activeTab = usePortfolioStore(state => state.activeTab);
+  const hoveredItem = usePortfolioStore(state => state.hoveredItem);
+  const language = usePortfolioStore(state => state.language);
   const root = useRef(null);
   const reduced = useMediaQuery('(prefers-reduced-motion: reduce)');
   const diagnostic = activeTab === 'skills' ? getTechnologyDiagnostic(hoveredItem, language) : null;

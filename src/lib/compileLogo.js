@@ -104,7 +104,38 @@ function parseLogo(svgText) {
 }
 
 
+// These illustrated badges use engraved paths on a shallow shield.
+function compileBadge(svg) {
+  const { paths } = new SVGLoader().parse(svg);
+  const segments = [];
+  const vertices = paths.flatMap(path => path.subPaths.flatMap(sub => sub.getPoints(6)));
+  const xs = vertices.map(point => point.x);
+  const ys = vertices.map(point => point.y);
+  const scale = 2.1 / Math.max(Math.max(...xs) - Math.min(...xs), Math.max(...ys) - Math.min(...ys));
+  function line(a, z1, b, z2) {
+    segments.push(a.x * scale, a.y * scale, z1, b.x * scale, b.y * scale, z2);
+  }
+  for (const path of paths) {
+    const rim = path.userData.node.hasAttribute('data-rim');
+    for (const sub of path.subPaths) {
+      const points = sub.getPoints(6);
+      for (let i = 1; i < points.length; i++) {
+        line(points[i - 1], 0.05, points[i], 0.05);
+        if (rim) line(points[i - 1], -0.05, points[i], -0.05);
+      }
+      if (rim) {
+        for (const t of [0, 0.25, 0.5, 0.75]) {
+          const point = sub.getPointAt(t);
+          line(point, -0.05, point, 0.05);
+        }
+      }
+    }
+  }
+  return segments;
+}
+
 export function compileLogo(svg) {
+ if (svg.includes('data-hologram="engraved"')) return compileBadge(svg);
  const source = new ExtrudeGeometry(parseLogo(svg), EXTRUSION);
  const edges = new EdgesGeometry(source, 25);
  try { return Array.from(edges.attributes.position.array); }

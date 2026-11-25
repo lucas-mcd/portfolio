@@ -1,4 +1,4 @@
-import { about, projects, education, skills } from './portfolioData';
+import { about, projects, education, skills } from './portfolioData.js';
 
 const projectEnglish = {
   cereon: { title: 'Cereon E-commerce Store (Full Stack)', description: [
@@ -19,15 +19,21 @@ const projectEnglish = {
   ] }
 };
 const educationEnglish = {
-  estacio: { course: 'Software Engineering', status: 'In progress', detail: '6th semester', grade: 'Overall academic average (CR): 9.33/10' },
-  ebac: { course: 'Full Stack Python', status: 'Completed' },
-  senai: { course: 'Full-Stack Programming', status: 'Completed' },
-  fisk: { course: 'English', status: 'Fluent', detail: 'English language training' }
+  'estacio': { status: "In progress", summary: "A degree covering the software lifecycle, from requirements analysis and design to implementation, testing and maintenance.", course: "Software Engineering", detail: "6th semester", grade: "Overall academic average (CR): 9.33/10" },
+  'ebac': { status: "Completed", summary: "Web development with Python, connecting user interfaces, server-side logic and databases in complete applications.", course: "Full Stack Python" },
+  'ebac-kotlin': { status: "Completed", summary: "Native Android development in Kotlin with MVVM architecture, REST API integration, local data storage, Jetpack and mobile UI and UX practices.", course: "Android Kotlin Developer" },
+  'fisk': { status: "Fluent", summary: "English language studies covering listening, reading, writing and conversation.", course: "English", detail: "English language training" },
+  'senai': { status: "Completed", summary: "Web programming from interface development to server-side services and database integration.", course: "Full-Stack Programming" },
+  'sycp': { status: "In progress", summary: "Web application penetration testing, from reconnaissance and vulnerability analysis to OWASP Top 10 exploitation, post-exploitation and technical reporting." },
+  'sywp': { status: "In progress", summary: "Wireless network auditing, including handshake capture and cracking, Evil Twin attacks, WPA, WPA2 and WPA3 security, and Wi-Fi infrastructure defense." },
+  'syh2': { status: "In progress", summary: "Physical and embedded device security, including circuit analysis, firmware extraction, UART, SPI and JTAG interfaces, USB and RFID attacks, and hardware hacking tools." },
+  'syap': { status: "In progress", summary: "Android application security, including APK reverse engineering, static and dynamic analysis, SSL pinning and root detection bypass, and vulnerabilities in storage and APIs." },
+  'syes': { status: "In progress", summary: "Post-exploitation and evasion of enterprise defenses, covering antivirus and EDR bypass, payload obfuscation, in-memory stealth techniques and persistence." },
 };
 export const categoryName = (group, language) => language === 'en'
   ? ({ tools: 'Tools', integrations: 'Deployment & integrations' }[group.id] || group.category) : group.category;
 
-export function getPortfolioContent(language) {
+function localize(language) {
   const english = language === 'en';
   return {
     about: english ? { ...about, role: 'Python Full Stack Developer',
@@ -39,4 +45,9 @@ export function getPortfolioContent(language) {
     education: education.map(item => ({ ...item, ...(english ? educationEnglish[item.id] : {}) })),
     skills: skills.map(group => ({ ...group, category: categoryName(group, language) }))
   };
+}
+
+const localized = { pt: localize('pt'), en: localize('en') };
+export function getPortfolioContent(language) {
+  return language === 'en' ? localized.en : localized.pt;
 }

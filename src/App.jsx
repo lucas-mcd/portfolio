@@ -1,9 +1,10 @@
 import { lazy, Suspense, useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { TABS, UI_TEXT, usePortfolioStore } from './store/usePortfolioStore';
-import { about, projects, resume, socialLinks } from './data/portfolioData';
+import { about, education, institutionIcons, projects, resume, skillIcons, socialLinks } from './data/portfolioData';
 import { useMediaQuery } from './hooks/useMediaQuery';
 import PageTransition from './components/PageTransition';
 import { gsap } from './lib/gsap';
+import { CertificatePanel, ComplementaryPanel } from './components/ComplementaryPanel';
 import SkillsPanel from './components/SkillsPanel';
 import OverdriveWarning from './components/OverdriveWarning';
 import OverdriveJourney from './components/OverdriveJourney';
@@ -59,27 +60,35 @@ function DigitalClock({ language, paused = false }) {
   return <time className="digital-clock" dateTime={now.toISOString()}>{now.toLocaleTimeString(language === 'pt' ? 'pt-BR' : 'en-GB', { hour12: false })}</time>;
 }
 function HologramPanel({ paused, text }) {
-  const { activeTab, hoveredItem, language } = usePortfolioStore();
-  const translatedProject = getPortfolioContent(language).projects.find(item => item.hoverKey === hoveredItem);
+  const activeTab = usePortfolioStore(state => state.activeTab);
+  const hoveredItem = usePortfolioStore(state => state.hoveredItem);
+  const language = usePortfolioStore(state => state.language);
+  const content = getPortfolioContent(language);
+  const course = activeTab === 'education' && (content.education.find(item => item.id === hoveredItem) ?? content.education[0]);
+  const translatedProject = content.projects.find(item => item.hoverKey === hoveredItem);
   const label = translatedProject?.title || hoveredItem || (activeTab === 'home' ? 'CURRICULUM / ABSTRACT' : text.tabs[TABS.findIndex((tab) => tab.id === activeTab)]);
-  return <aside className={`hologram-panel ${activeTab === 'skills' ? 'skills-hologram' : ''}`} aria-label="Hologram">
+  return <aside className={`hologram-panel ${activeTab === 'skills' ? 'skills-hologram' : course ? 'education-hologram' : ''}`} aria-label="Hologram">
     <header className="viewport-header"><span>HOLOGRAM / LIVE VIEW</span><span>◈</span></header>
     <Suspense fallback={<div className="hologram-stage" />}><HologramViewport paused={paused} /></Suspense>
     <AssetDiagnostic paused={paused} />
-    <div className="hologram-caption"><span>OBJECT_ID</span><strong>{label}</strong></div>
+    {course ? <section className="hologram-caption course-caption" id="course-caption">
+      <h2>{course.course}</h2>
+      <div className="course-badges"><span>{course.institution}{course.credential && ` / ${course.credential}`}</span><span>{course.status}</span></div>
+      <p className="course-summary" key={course.id} tabIndex={0}>{course.summary}</p>
+    </section> : <div className="hologram-caption"><span>OBJECT_ID</span><strong>{label}</strong></div>}
     <p className="muted text-xs p-5">{activeTab === 'skills' ? 'HOVER / FOCUS / TAP → SCAN' : 'MONOCHROME / GEOMETRIC STUDY'}</p>
   </aside>;
 }
 
 function EducationList({ language }) {
   const { education } = getPortfolioContent(language);
-  return <ol className="education-list">{education.filter(item => item.id !== 'fisk').map((item) => <li key={item.id}>
+  return <ol className="education-list">{education.filter(item => ['estacio', 'ebac', 'senai'].includes(item.id)).map((item) => <li key={item.id}>
     <p className="critical text-xs">{item.institution} / {item.status}</p>
     <h3>{item.course}</h3>{item.detail && <p className="muted text-xs">{item.detail}</p>}{item.grade && <p className="academic-grade">{item.grade}</p>}
   </li>)}</ol>;
 }
 function ProjectsPanel({ text, language }) {
-  const { setHoveredItem, clearHoveredItem } = usePortfolioStore();
+  const { setHoveredItem, clearHoveredItem } = usePortfolioStore.getState();
   const [selected, setSelected] = useState(null);
   const localized = getPortfolioContent(language).projects;
   const selectedKey = projects.find(item => item.id === selected)?.title;
@@ -151,7 +160,8 @@ function SocialConnections({ paused, language }) {
 
 function Content({ activeTab, navigate, paused, text, language }) {
   const { about, education } = getPortfolioContent(language);
-  const { setHoveredItem, clearHoveredItem } = usePortfolioStore();
+  const hoveredItem = usePortfolioStore(state => activeTab === 'education' ? state.hoveredItem : null);
+  const { setHoveredItem } = usePortfolioStore.getState();
   switch (activeTab) {
     case 'home': return <section className="home-layout cohesive-home focused-home flex flex-col justify-start py-12 px-6 text-center max-w-xl mx-auto h-full">
       <header className="home-intro"><h1 className="identity-title brand-glitch" data-text={about.name}>{about.name}</h1>
@@ -172,17 +182,27 @@ function Content({ activeTab, navigate, paused, text, language }) {
       </div>
     </div></section>;
     case 'projects': return <ProjectsPanel text={text} language={language} />;
+    case 'complementary': return <ComplementaryPanel language={language} />;
     case 'skills': return <SkillsPanel paused={paused} title={text.skills} />;
-    case 'education': return <section className="education-panel"><p className="eyebrow">ACADEMIC RECORD / 04</p><h1>{text.education}</h1><ol className="education-files border-panel">{education.map((item, index) => <li key={item.id}><button type="button" className="education-row group border-b border-white/10 py-3 flex justify-between items-center w-full text-left" onMouseEnter={() => setHoveredItem(item.institution)} onMouseLeave={clearHoveredItem} onFocus={() => setHoveredItem(item.institution)} onBlur={clearHoveredItem} onClick={() => setHoveredItem(item.institution)}>
+    case 'education': return <section className="education-panel"><p className="eyebrow">ACADEMIC RECORD / 04</p><h1>{text.education}</h1><ol className="education-files border-panel">{education.map((item, index) => <li key={item.id}><button type="button" className="education-row group border-b border-white/10 py-3 flex justify-between items-center w-full text-left" aria-pressed={(hoveredItem ?? education[0].id) === item.id} aria-controls="course-caption"
+      onPointerEnter={event => {
+        if (event.pointerType === 'mouse' && window.matchMedia('(min-width: 1024px)').matches) setHoveredItem(item.id);
+      }} onFocus={() => setHoveredItem(item.id)} onClick={() => {
+        setHoveredItem(item.id);
+        if (window.matchMedia('(max-width: 1023px)').matches) document.querySelector('.education-hologram')?.scrollIntoView({ block: 'start' });
+      }}>
       <span className="file-number">{String(index + 1).padStart(2, '0')}</span>
-      <div className="min-w-0 flex-1"><h2 className="text-sm">{item.course}</h2>{item.detail && <p className="muted text-xs mt-2">{item.detail}</p>}{item.grade && <p className="academic-grade">{item.grade}</p>}</div>
+      <div className="min-w-0 flex-1"><h2 className="text-sm">{item.course}{item.credential && ` (${item.credential})`}</h2>{item.detail && <p className="muted text-xs mt-2">{item.detail}</p>}{item.grade && <p className="academic-grade">{item.grade}</p>}</div>
       <div className="education-meta text-right"><p className="text-xs">{item.institution}</p><p className="muted text-xs mt-2">{item.status}</p></div>
     </button></li>)}</ol></section>;
     default: return null;
   }
 }
 export default function App() {
-  const { activeTab, setActiveTab, language, setLanguage, overdriveMode, toggleOverdriveMode, toggleOverdriveWarning } = usePortfolioStore();
+  const activeTab = usePortfolioStore(state => state.activeTab);
+  const language = usePortfolioStore(state => state.language);
+  const overdriveMode = usePortfolioStore(state => state.overdriveMode);
+  const { setActiveTab, setLanguage, toggleOverdriveMode, toggleOverdriveWarning } = usePortfolioStore.getState();
   const text = UI_TEXT[language];
   const [isBooting, setIsBooting] = useState(true);
   const finishBoot = useCallback(() => setIsBooting(false), []);
@@ -200,6 +220,39 @@ export default function App() {
   const desktop = useMediaQuery('(min-width: 1024px)');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const mobileMenuButton = useRef(null);
+  useEffect(() => {
+    // Warm the default course first, then a few small tile images per idle turn.
+    if (navigator.connection?.saveData) return;
+    let cancelled = false;
+    let handle;
+    const idle = callback => window.requestIdleCallback
+      ? window.requestIdleCallback(callback)
+      : window.setTimeout(callback, 120);
+    const icons = [...new Set(Object.values(skillIcons))];
+    function warmTiles() {
+      if (cancelled) return;
+      const batch = icons.splice(0, 4).map(icon => {
+        const image = new Image();
+        image.fetchPriority = 'low';
+        image.src = `${import.meta.env.BASE_URL}icons/mono/${icon}.svg`;
+        return image.decode();
+      });
+      Promise.allSettled(batch).then(() => {
+        if (!cancelled && icons.length) handle = idle(warmTiles);
+      });
+    }
+    handle = idle(() => {
+      import('./lib/hologramCache').then(({ loadHologram }) => {
+        if (!cancelled) return loadHologram(institutionIcons[education[0].institution]);
+      }).catch(() => {});
+      warmTiles();
+    });
+    return () => {
+      cancelled = true;
+      if (window.cancelIdleCallback) window.cancelIdleCallback(handle);
+      else clearTimeout(handle);
+    };
+  }, []);
   useEffect(() => { if (desktop) setMobileMenuOpen(false); }, [desktop]);
   useEffect(() => {
     if (!mobileMenuOpen || desktop) return;
@@ -329,7 +382,9 @@ export default function App() {
           {activeTab === tab.id && <PageTransition activeTab={activeTab} paused={effectsPaused}><Content activeTab={activeTab} navigate={navigate} paused={effectsPaused} text={text} language={language} /></PageTransition>}
         </section>)}</div>
       </main>
-      {desktop && <HologramPanel paused={effectsPaused} text={text} />}
+      {activeTab === 'complementary' && !overdriveMode
+        ? <CertificatePanel language={language} />
+        : (desktop || activeTab === 'education') && <HologramPanel paused={effectsPaused} text={text} />}
     </div>
     <OverdriveWarning returnFocusRef={commandRef} />
     {overdriveMode && <OverdriveJourney />}

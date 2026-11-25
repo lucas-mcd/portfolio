@@ -2,7 +2,8 @@ import { useEffect, useRef, useState } from 'react';
 import { canUseOverdrive, usePortfolioStore } from '../store/usePortfolioStore';
 
 export default function OverdriveWarning({ returnFocusRef }) {
-  const { showOverdriveWarning, toggleOverdriveWarning, toggleOverdriveMode } = usePortfolioStore();
+  const showOverdriveWarning = usePortfolioStore(state => state.showOverdriveWarning);
+  const { toggleOverdriveWarning, toggleOverdriveMode } = usePortfolioStore.getState();
   const language = usePortfolioStore(state => state.language);
   const en = language === 'en';
   const [capturing, setCapturing] = useState(false);

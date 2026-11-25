@@ -32,10 +32,16 @@ export const skills = [
   { id: 'integrations', category: 'Deploy e integrações', items: ['Vercel', 'Cloudinary', 'PIX', 'Mercado Pago'] },
 ];
 export const education = [
-  { id: 'estacio', course: 'Engenharia de Software', institution: 'Estácio', status: 'Cursando', detail: '6º período', grade: 'CR geral 9,33' },
-  { id: 'ebac', course: 'Full Stack Python', institution: 'EBAC', status: 'Concluído' },
-  { id: 'fisk', course: 'Inglês', institution: 'Fisk / MET', status: 'Fluente', detail: 'Formação em língua inglesa' },
-  { id: 'senai', course: 'Programação Full-Stack', institution: 'SENAI', status: 'Concluído' },
+  { id: "estacio", course: "Engenharia de Software", institution: "Estácio", status: "Cursando", summary: "Graduação sobre o ciclo de vida do software, da análise de requisitos ao projeto, implementação, testes e manutenção de sistemas.", detail: "6º período", grade: "CR geral 9,33" },
+  { id: "ebac", course: "Full Stack Python", institution: "EBAC", status: "Concluído", summary: "Formação em desenvolvimento web com Python, integrando interfaces, lógica de servidor e bancos de dados em aplicações completas." },
+  { id: "ebac-kotlin", course: "Desenvolvedor Android Kotlin", institution: "EBAC", status: "Concluído", summary: "Desenvolvimento Android nativo em Kotlin com arquitetura MVVM, integração de APIs REST, persistência local, Jetpack e boas práticas de UI e UX mobile." },
+  { id: "fisk", course: "Inglês", institution: "Fisk / MET", status: "Fluente", summary: "Formação em língua inglesa com foco em compreensão oral, leitura, escrita e conversação.", detail: "Formação em língua inglesa" },
+  { id: "senai", course: "Programação Full-Stack", institution: "SENAI", status: "Concluído", summary: "Formação em programação para a web, da construção de interfaces à implementação de serviços e integração com bancos de dados." },
+  { id: "sycp", course: "Certified Pentester", institution: "Solyd", status: "Cursando", summary: "Testes de invasão em aplicações web, do reconhecimento à análise de vulnerabilidades, exploração de falhas do OWASP Top 10, pós-exploração e elaboração de relatórios técnicos.", credential: "SYCP" },
+  { id: "sywp", course: "Wireless Pentester", institution: "Solyd", status: "Cursando", summary: "Auditoria de redes sem fio, com estudo de captura e quebra de handshakes, ataques Evil Twin, segurança dos protocolos WPA, WPA2 e WPA3 e defesa da infraestrutura Wi-Fi.", credential: "SYWP" },
+  { id: "syh2", course: "Hardware Hacker", institution: "Solyd", status: "Cursando", summary: "Segurança de dispositivos físicos e embarcados, incluindo análise de circuitos, extração de firmware, interfaces UART, SPI e JTAG, ataques via USB e RFID e criação de gadgets de hacking.", credential: "SYH2" },
+  { id: "syap", course: "App Pentester", institution: "Solyd", status: "Cursando", summary: "Segurança ofensiva de aplicações Android, com engenharia reversa de APKs, análise estática e dinâmica, bypass de SSL pinning e detecção de root e estudo de falhas em armazenamento e APIs.", credential: "SYAP" },
+  { id: "syes", course: "Evasion Specialist", institution: "Solyd", status: "Cursando", summary: "Pós-exploração e evasão de defesas corporativas, com estudo de bypass de antivírus e EDR, ofuscação de payloads, técnicas furtivas em memória e persistência.", credential: "SYES" },
 ];
 // Coloque o PDF em public e informe a URL relativa à BASE_URL, ex.: cv/lucas.pdf.
 export const resume = { path: 'cv/Lucas_Correa_Macedo_CV.pdf' };
@@ -270,7 +276,7 @@ export function getTechnologyDiagnostic(name, language = "pt") {
   return entry ? { name: entry.name, ...entry[language === "en" ? "en" : "pt"] } : null;
 }
 
-export const institutionIcons = { 'Estácio': 'estacio', EBAC: 'ebac', SENAI: 'senai', 'Fisk / MET': 'fisk' };
+export const institutionIcons = { 'Estácio': 'estacio', EBAC: 'ebac', SENAI: 'senai', 'Fisk / MET': 'fisk', Solyd: 'solyd' };
 
 // Identificadores compartilhados por Skills e pelos grupos de hologramas.
 skillIcons["Django REST Framework"] = "djangorest";

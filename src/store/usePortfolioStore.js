@@ -6,11 +6,12 @@ export const TABS = Object.freeze([
   { id: 'projects', label: 'Projetos', command: 'ls projects' },
   { id: 'skills', label: 'Conhecimentos', command: 'skills' },
   { id: 'education', label: 'Formação', command: 'education' },
+  { id: 'complementary', label: 'Complementares', command: 'complementary' },
 ]);
 // Camada inicial: o currículo continua sendo a fonte de dados original.
 export const UI_TEXT = {
   pt: {
-    tabs: ['Home', 'Sobre Mim', 'Projetos', 'Conhecimentos', 'Formação'],
+    tabs: ['Home', 'Sobre Mim', 'Projetos', 'Conhecimentos', 'Formação', 'Complementares'],
     role: 'Desenvolvedor Full Stack Python', about: 'Dossiê pessoal',
     projects: 'Arquivos de projeto', education: 'Formação', skills: 'Conhecimentos',
     openProjects: 'Abrir arquivos de projeto', pause: 'Pausar efeitos', resume: 'Retomar efeitos',
@@ -19,7 +20,7 @@ export const UI_TEXT = {
     academic: 'REGISTRO EDUCACIONAL', sourceLanguage: 'Dados do currículo: português',
   },
   en: {
-    tabs: ['Home', 'About Me', 'Projects', 'Skills', 'Education'],
+    tabs: ['Home', 'About Me', 'Projects', 'Skills', 'Education', 'Additional Training'],
     role: 'Python Full Stack Developer', about: 'Personal dossier',
     projects: 'Project files', education: 'Education', skills: 'Skills',
     openProjects: 'Open project files', pause: 'Pause effects', resume: 'Resume effects',
@@ -47,8 +48,8 @@ export const usePortfolioStore = create(guarded((set, get) => ({
       set({ activeTab, hoveredItem: null });
   },
   setLanguage: (language) => { if (['pt', 'en'].includes(language)) set({ language }); },
-  setHoveredItem: (name) => { if (typeof name === 'string' && name.trim()) set({ hoveredItem: name }); },
-  clearHoveredItem: () => set({ hoveredItem: null }),
+  setHoveredItem: (name) => { if (typeof name === 'string' && name.trim() && get().hoveredItem !== name) set({ hoveredItem: name }); },
+  clearHoveredItem: () => { if (get().hoveredItem !== null) set({ hoveredItem: null }); },
   toggleOverdriveWarning: (value) => {
     if (!get().overdriveMode) set({ showOverdriveWarning: typeof value === 'boolean' ? value : !get().showOverdriveWarning });
   },
